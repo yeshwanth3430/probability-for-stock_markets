@@ -150,10 +150,11 @@ void note    (const std::string& text) { std::cout << "\n      " << text << "\n"
 // A formula checked against brute force. Kept on one tidy line.
 void verify(const std::string& what, unsigned long long formula,
             unsigned long long listed) {
+    // Widths chosen so even a 9-digit count stays inside the 70-column page.
     std::cout << "\n  " << (formula == listed ? "ok " : "XX ")
-              << std::left << std::setw(30) << what << std::right
-              << "formula " << std::setw(8) << commas(formula)
-              << "   listed " << std::setw(8) << commas(listed) << "\n";
+              << std::left << std::setw(25) << what << std::right
+              << "formula " << std::setw(11) << commas(formula)
+              << "  listed " << std::setw(11) << commas(listed) << "\n";
 }
 
 // "1 in N" - the form people actually think in. Short odds keep a decimal
@@ -222,44 +223,55 @@ int main() {
     // ========================================================================
     // Two words drive every formula in this lesson, so they are worth one
     // section of their own. The idea is physical, not mathematical.
-    question("After I pick something, do I put it BACK?");
+    // A raffle makes the whole idea physical. Everyone has watched a name
+    // come out of a hat, and everyone immediately has an opinion about
+    // whether the same person should be allowed to win twice.
+    question("Ann, Ben and Cal put their names in a hat. You draw one");
+    std::cout << "      name for FIRST prize, then draw again for SECOND prize.\n"
+                 "      Do you put Ann's slip BACK before the second draw?\n";
 
     std::cout << "\n"
         "      WITH replacement            WITHOUT replacement\n"
         "      ------------------------    ------------------------\n"
-        "      put it back each time       keep it, it is used up\n"
-        "      the pool never shrinks      the pool shrinks by 1\n"
-        "      you CAN repeat a pick       you can NEVER repeat\n";
+        "      her slip goes back in       her slip stays out\n"
+        "      hat still holds 3 names     hat now holds 2 names\n"
+        "      Ann can win BOTH prizes     Ann can win only one\n";
 
-    note("A bag holds 3 balls: A B C. Draw 2 of them.");
-    std::cout << "\n"
-        "      WITH replacement            WITHOUT replacement\n"
-        "         draw 1:  3 choices          draw 1:  3 choices\n"
-        "         draw 2:  3 choices          draw 2:  2 choices\n"
-        "                  (A went back)               (A is gone)\n";
+    // Small enough to draw the entire outcome grid, twice, which is the
+    // clearest way to see what the word actually does.
+    const std::vector<std::string> hat = {"Ann", "Ben", "Cal"};
 
-    // Small enough to list both ways in full - which is the whole point.
-    const char bag[3] = {'A', 'B', 'C'};
-    std::vector<std::string> withBack, withoutBack;
-    for (int i = 0; i < 3; ++i)
-        for (int j = 0; j < 3; ++j) {
-            std::string pick = std::string{bag[i], bag[j]};
-            withBack.push_back(pick);
-            if (i != j) withoutBack.push_back(pick);   // j == i needs a repeat
+    // One lambda, both grids: the only difference is whether the diagonal
+    // (the same person twice) is allowed to exist.
+    auto raffleGrid = [&hat](bool putSlipBack) {
+        std::cout << "\n                        second prize\n"
+                     "                  Ann       Ben       Cal\n"
+                     "             +-------------------------------\n";
+        for (size_t i = 0; i < hat.size(); ++i) {
+            std::cout << "       " << std::left << std::setw(6) << hat[i]
+                      << std::right << "|";
+            for (size_t j = 0; j < hat.size(); ++j) {
+                if (!putSlipBack && i == j) std::cout << std::setw(10) << "--";
+                else std::cout << std::setw(10) << (hat[i] + "-" + hat[j]);
+            }
+            std::cout << "\n";
         }
+        std::cout << "       first prize\n";
+    };
 
-    note("Every possible pair, WITH replacement (3 x 3):");
-    printRow(withBack, 9);
-    verify("2 from 3, with replacement", power(3, 2), withBack.size());
+    note("WITH replacement - every slip goes back, so all 9 exist:");
+    raffleGrid(true);
+    verify("raffle, with replacement", power(3, 2), 9);
 
-    note("Every possible pair, WITHOUT replacement (3 x 2):");
-    printRow(withoutBack, 9);
-    verify("2 from 3, without replacement", nPr(3, 2), withoutBack.size());
+    note("WITHOUT replacement - nobody can win twice:");
+    raffleGrid(false);
+    verify("raffle, no replacement", nPr(3, 2), 6);
 
     std::cout << "\n"
-        "      Compare the two lists. WITHOUT replacement is missing exactly\n"
-        "      AA, BB and CC - the three picks that need a ball to show up\n"
-        "      twice. That is the only difference, and it is why 9 becomes 6.\n";
+        "      Look at what disappeared: Ann-Ann, Ben-Ben and Cal-Cal.\n"
+        "      Exactly the diagonal - the three results where the same\n"
+        "      person wins both prizes. Removing them is the ONLY change,\n"
+        "      and it is the whole reason 9 becomes 6.\n";
 
     // ---- the practical test -------------------------------------------------
     answer("Look at the numbers under the slots. That is the whole test.");
@@ -380,33 +392,51 @@ int main() {
     // Take replacement away. Slot 1 has 3 choices; once used, slot 2 has only
     // 2 left, then 1. The count drops by one each slot because things get used
     // up, and that countdown is exactly what a factorial is.
-    question("Arrange the letters A B C in a row, using each once.");
+    question("Ann, Ben and Cal stand in a row for a photograph.");
+    std::cout << "      How many different photos are possible?\n";
+
+    note("Left spot: any of the 3. Once Ann is standing there she");
+    std::cout << "      cannot also be in the middle, so the middle spot has\n"
+                 "      only 2 people left, and the right spot has 1.\n";
 
     std::cout << "\n"
-        "         ___   ___   ___\n"
-        "          3     2     1        3 x 2 x 1  =  3!\n";
+        "          left   middle   right\n"
+        "          ___     ___     ___\n"
+        "           3       2       1        3 x 2 x 1  =  3!\n";
 
-    answer("3!  =  " + commas(factorial(3)) + " arrangements");
+    answer("3!  =  " + commas(factorial(3)) + " different photos");
 
     // std::next_permutation walks a sorted sequence through every ordering.
-    std::vector<char> letters = {'A', 'B', 'C'};
-    std::sort(letters.begin(), letters.end());
-    std::vector<std::string> arrangements;
+    std::vector<std::string> line = {"Ann", "Ben", "Cal"};
+    std::sort(line.begin(), line.end());
+    std::vector<std::string> photos;
     do {
-        arrangements.push_back(std::string(letters.begin(), letters.end()));
-    } while (std::next_permutation(letters.begin(), letters.end()));
-    printRow(arrangements, 6);
-    verify("arrangements of ABC", factorial(3), arrangements.size());
+        std::string one;
+        for (size_t i = 0; i < line.size(); ++i) {
+            if (i) one += " ";
+            one += line[i];
+        }
+        photos.push_back(one);
+    } while (std::next_permutation(line.begin(), line.end()));
+    printRow(photos, 3);
+    verify("photos of 3 friends", factorial(3), photos.size());
 
-    // One more letter, to watch it grow.
-    note("Add one letter and it jumps to 4! = " + commas(factorial(4)) + ":");
-    std::vector<char> four = {'A', 'B', 'C', 'D'};
-    arrangements.clear();
+    // One more person, to watch it grow.
+    note("Now Dee turns up and joins the row. One extra person,");
+    std::cout << "      and the photos jump from 6 to 4! = " << commas(factorial(4))
+              << ":\n";
+    std::vector<std::string> four = {"Ann", "Ben", "Cal", "Dee"};
+    photos.clear();
     do {
-        arrangements.push_back(std::string(four.begin(), four.end()));
+        std::string one;
+        for (size_t i = 0; i < four.size(); ++i) {
+            if (i) one += " ";
+            one += four[i];
+        }
+        photos.push_back(one);
     } while (std::next_permutation(four.begin(), four.end()));
-    printRow(arrangements, 8);
-    verify("arrangements of ABCD", factorial(4), arrangements.size());
+    printRow(photos, 3);
+    verify("photos of 4 friends", factorial(4), photos.size());
 
     // ---- why we will never brute force again --------------------------------
     note("n! grows faster than almost anything you have met:");
@@ -450,7 +480,24 @@ int main() {
         "      Ann cares a great deal which of those happened. So we count\n"
         "      them as two separate outcomes.\n";
 
+    // Do not just drop 311,875,200 on the reader. Multiply it out one player
+    // at a time, so the number is watched being built rather than announced.
+    note("Multiply the slots out one player at a time, and watch");
+    std::cout << "      the running total. Each new player MULTIPLIES it:\n\n"
+                 "          player   ways left        running total\n"
+                 "          ------------------------------------------\n";
+    const char* who[5] = {"Ann", "Ben", "Cal", "Dee", "Eve"};
+    unsigned long long running = 1;
+    for (int i = 0; i < 5; ++i) {
+        int waysLeft = 52 - i;                  // the deck has shrunk by i cards
+        running *= static_cast<unsigned long long>(waysLeft);
+        std::cout << "          " << std::left << std::setw(9) << who[i]
+                  << std::right << (i == 0 ? "  " : "x ") << std::setw(2)
+                  << waysLeft << std::setw(22) << commas(running) << "\n";
+    }
+
     answer("52 x 51 x 50 x 49 x 48  =  " + commas(nPr(52, 5)) + " deals");
+    verify("the running total", nPr(52, 5), running);
 
     // NOTE: we write "#" for "how many ways", never P. In this course P is
     // already taken - it means probability. Mixing them up is a real trap.
@@ -464,24 +511,32 @@ int main() {
         "\n"
         "      ('#' means 'how many ways'. Never P - here P means probability.)\n";
 
-    // Prove the formula at a size we can actually see: 3 from 5 letters.
-    note("Shrink it: pick 3 from A B C D E, order matters.");
-    std::cout << "      Formula says 5 x 4 x 3 = " << nPr(5, 3)
-              << ". Three nested loops,\n"
-              << "      skipping any repeat, list them all:\n";
+    // Prove the formula at a size we can actually see, with the same cast.
+    note("Same idea, small enough to check by eye. The five friends");
+    std::cout << "      race each other, and we hand out three medals:\n\n"
+                 "           gold   silver   bronze\n"
+                 "           ___     ___      ___\n"
+                 "            5       4        3       5 x 4 x 3 = "
+              << nPr(5, 3) << "\n";
 
-    const char pool[5] = {'A', 'B', 'C', 'D', 'E'};
-    std::vector<std::string> ordered;
+    note("ORDER MATTERS because gold is not bronze. Ann-Ben-Cal");
+    std::cout << "      and Cal-Ben-Ann are different afternoons entirely.\n"
+                 "      Every possible podium, all " << nPr(5, 3) << " of them:\n";
+
+    const std::vector<std::string> friends = {"Ann", "Ben", "Cal", "Dee", "Eve"};
+    std::vector<std::string> podiums;
     for (int i = 0; i < 5; ++i)
         for (int j = 0; j < 5; ++j) {
-            if (j == i) continue;                        // no replacement
+            if (j == i) continue;                        // cannot win two medals
             for (int k = 0; k < 5; ++k) {
-                if (k == i || k == j) continue;          // no replacement
-                ordered.push_back(std::string{pool[i], pool[j], pool[k]});
+                if (k == i || k == j) continue;          // cannot win two medals
+                podiums.push_back(friends[static_cast<size_t>(i)] + " " +
+                                  friends[static_cast<size_t>(j)] + " " +
+                                  friends[static_cast<size_t>(k)]);
             }
         }
-    printRow(ordered, 12);
-    verify("pick 3 of 5, ordered", nPr(5, 3), ordered.size());
+    printRow(podiums, 5);
+    verify("podiums, 3 medals of 5", nPr(5, 3), podiums.size());
 
     // ========================================================================
     part(6, "ORDER IGNORED", "n! / ((n-r)! r!)  =  nCr");
@@ -493,13 +548,16 @@ int main() {
     std::cout << "      You pick up your five cards and fan them out. How many\n"
                  "      different HANDS can you be holding?\n";
 
-    note("A hand is a SET. Once the cards are in your hand, the");
+    note("A hand is a SET. Once the cards are in your hand the");
     std::cout << "      order they arrived in is gone forever - you cannot tell\n"
-                 "      by looking. Say you are holding  K Q 2 3 7.  Every one\n"
-                 "      of these deals leaves you with exactly that hand:\n\n";
+                 "      by looking which came first.\n";
 
-    // Do not assert the 120. Show it. These are real orderings of one hand,
-    // generated the same way we generated arrangements back in PART 4.
+    // ---- STEP 1: show the duplication, do not assert it ---------------------
+    // These are real orderings of one hand, generated by the same machinery
+    // we used for arrangements back in PART 4.
+    std::cout << "\n      STEP 1   Say you are holding  K Q 2 3 7.\n"
+                 "               Every one of these DEALS hands you that hand:\n\n";
+
     std::vector<std::string> hand = {"2", "3", "7", "K", "Q"};
     std::sort(hand.begin(), hand.end());
     std::vector<std::string> deals;
@@ -512,21 +570,45 @@ int main() {
         deals.push_back(one);
     } while (std::next_permutation(hand.begin(), hand.end()));
 
+    // Start the display at the hand as written, so the six shown are obviously
+    // the same five cards being shuffled around.
+    auto start = std::find(deals.begin(), deals.end(), "K Q 2 3 7");
+    if (start != deals.end()) std::rotate(deals.begin(), start, deals.end());
+
     for (size_t i = 0; i < 6; ++i)
-        std::cout << "          " << deals[i] << "\n";
-    std::cout << "          ... and " << commas(deals.size() - 6) << " more.\n";
+        std::cout << "                   " << deals[i] << "\n";
+    std::cout << "                   ... and " << commas(deals.size() - 6)
+              << " more, all the same hand.\n";
 
-    note("How many orderings is that? It is just PART 4 again -");
-    std::cout << "      arranging 5 things you already hold:  5! = "
-              << commas(factorial(5)) << "\n";
-    verify("orderings of one poker hand", factorial(5), deals.size());
+    // ---- STEP 2: count the duplication --------------------------------------
+    std::cout << "\n      STEP 2   How many orderings is that? Nothing new - it is\n"
+                 "               PART 4, arranging 5 things you already hold:\n"
+                 "               5! = " << commas(factorial(5)) << "\n";
+    verify("orderings of one hand", factorial(5), deals.size());
 
-    note("So PART 5 counted every hand " + commas(factorial(5)) + " separate times,");
-    std::cout << "      once per ordering. To count HANDS instead of DEALS,\n"
-                 "      divide that duplication back out:\n";
+    // ---- STEP 3: divide it out ----------------------------------------------
+    std::cout << "\n      STEP 3   So PART 5's " << commas(nPr(52, 5))
+              << " counted every single hand\n"
+                 "               " << commas(factorial(5))
+              << " separate times. Divide the duplication out.\n";
 
     answer(commas(nPr(52, 5)) + " deals / " + commas(factorial(5))
            + " orderings  =  " + commas(nCr(52, 5)) + " hands");
+
+    // ---- where the textbook formula comes from ------------------------------
+    // This is the bridge people usually never see: nPr/r! IS n!/((n-r)! r!).
+    // Same thing, written differently.
+    note("That is already the answer. The textbook just writes it");
+    std::cout << "      differently - substitute PART 5's nPr = n!/(n-r)!:\n\n"
+        "                  nPr        n! / (n-r)!            n!\n"
+        "          nCr =  -----  =   -------------   =   -----------\n"
+        "                   r!             r!             (n-r)!  r!\n"
+        "\n"
+        "      Same calculation, one line of algebra apart. With n = 52,\n"
+        "      r = 5:   52! / (47! x 5!)  =  " << commas(nCr(52, 5)) << "\n";
+
+    note("It is written nCr, or C(52,5), or (52 choose 5). Read it");
+    std::cout << "      out loud as '52 choose 5' - that is what people say.\n";
 
     std::cout << "\n"
         "      The two questions side by side:\n\n"
@@ -537,37 +619,69 @@ int main() {
         "      One question apart - 'does it matter who got it?' - and a\n"
         "      factor of " << commas(factorial(5)) << " between the answers.\n";
 
-    // See the double counting happen at a size small enough to print in full.
-    note("Same thing at a size you can check by eye. Pick 3 from");
-    std::cout << "      A B C D E, order ignored. Same loops as PART 5, but force\n"
-              << "      i < j < k so each group can appear only once:\n\n";
+    // The same argument with the five friends, small enough to print whole.
+    note("Now the whole argument again with the five friends. This");
+    std::cout << "      time we pick 3 of them for a TEAM - no captain, no\n"
+                 "      medals, just three names. Being picked is being picked.\n";
 
     unsigned long long groups = 0;
+    std::vector<std::string> teams;
     for (int i = 0; i < 5; ++i)
         for (int j = i + 1; j < 5; ++j)                  // j starts AFTER i
             for (int k = j + 1; k < 5; ++k) {            // k starts AFTER j
                 ++groups;
-                std::vector<char> group = {pool[i], pool[j], pool[k]};
-                std::cout << "         {" << group[0] << group[1] << group[2]
-                          << "}   holds   ";
-                std::sort(group.begin(), group.end());
-                bool first = true;
-                do {
-                    if (!first) std::cout << " ";     // space BEFORE, never after
-                    first = false;
-                    std::cout << std::string(group.begin(), group.end());
-                } while (std::next_permutation(group.begin(), group.end()));
-                std::cout << "\n";
+                teams.push_back("{" + friends[static_cast<size_t>(i)] + " " +
+                                friends[static_cast<size_t>(j)] + " " +
+                                friends[static_cast<size_t>(k)] + "}");
             }
 
-    note(commas(groups) + " groups, each hiding 3! = " + commas(factorial(3))
-         + " orderings.");
-    std::cout << "      " << groups << " x " << factorial(3) << " = "
-              << groups * factorial(3) << ", the ordered count from PART 5.\n";
+    std::cout << "\n      Every possible team, all " << groups << " of them:\n";
+    printRow(teams, 4);
+
+    // Expand exactly one team, to show where its 6 podiums went.
+    note("Take just the first team. It turned up in the PART 5");
+    std::cout << "      podium list " << factorial(3)
+              << " times, once per finishing order:\n";
+    std::vector<std::string> one = {friends[0], friends[1], friends[2]};
+    std::sort(one.begin(), one.end());
+    std::vector<std::string> itsPodiums;
+    do {
+        itsPodiums.push_back(one[0] + " " + one[1] + " " + one[2]);
+    } while (std::next_permutation(one.begin(), one.end()));
+    printRow(itsPodiums, 3);
+    std::cout << "\n      All six are the SAME team {Ann Ben Cal}. Every one of\n"
+                 "      the " << groups << " teams hides " << factorial(3)
+              << " podiums in exactly this way.\n";
+
+    std::cout << "\n      Read it as the very same three steps:\n\n"
+              << "          " << std::left << std::setw(30)
+              << "ordered count (PART 5)" << std::right << std::setw(5)
+              << commas(nPr(5, 3)) << "\n"
+              << "          " << std::left << std::setw(30)
+              << "orderings hidden per group" << std::right << std::setw(5)
+              << commas(factorial(3)) << "   <- 3!\n"
+              << "          " << std::left << std::setw(30)
+              << (commas(nPr(5, 3)) + " / " + commas(factorial(3)) + "  =")
+              << std::right << std::setw(5) << commas(nCr(5, 3))
+              << "   <- groups\n";
     verify("pick 3 of 5, unordered", nCr(5, 3), groups);
 
-    note("That i < j < k trick IS the formula. Forcing an order on");
-    std::cout << "      the indices is the same thing as dividing by r!.\n";
+    note("The medals are what made order matter. Take the medals");
+    std::cout << "      away and Ann-Ben-Cal and Cal-Ben-Ann stop being two\n"
+                 "      different things - they become one team. Dividing by\n"
+                 "      r! is exactly the act of forgetting the medals.\n";
+
+    // ---- a free result that falls out of the formula ------------------------
+    // The formula is symmetric in r and n-r, and that symmetry means something
+    // real: naming the cards you keep also names the cards you leave.
+    note("One free bonus. Choosing which 5 cards to KEEP is exactly");
+    std::cout << "      the same act as choosing which 47 to LEAVE BEHIND - do\n"
+                 "      one and the other is decided. So these must be equal:\n\n"
+                 "          C(52,5)  = " << std::setw(12) << commas(nCr(52, 5)) << "\n"
+                 "          C(52,47) = " << std::setw(12) << commas(nCr(52, 47)) << "\n";
+    verify("C(52,5) equals C(52,47)", nCr(52, 5), nCr(52, 47));
+    note("Handy in practice: C(52,47) is a nightmare to compute");
+    std::cout << "      directly, so compute the easy side instead.\n";
 
     // ========================================================================
     part(7, "THE WHOLE LESSON IN ONE TABLE", "n things, pick r");
@@ -590,6 +704,107 @@ int main() {
               << "         without, unordered           5C3     = "
               << std::setw(6) << commas(nCr(5, 3)) << "\n";
     note("Reading the question carefully is most of the work.");
+
+    // ------------------------------------------------------------------------
+    // THE SAME TABLE, WORKED AS A STOCK MARKET PROBLEM.
+    //
+    // One watchlist, one number of decisions, four different questions. Only
+    // the wording changes - and the answers run from 56 to 512.
+    // ------------------------------------------------------------------------
+    std::cout << "\n"
+        "  ------------------------------------------------------------------\n"
+        "  THE SAME FOUR CELLS, AS A STOCK MARKET PROBLEM\n"
+        "  ------------------------------------------------------------------\n";
+
+    const std::vector<std::string> watchlist =
+        {"NVDA", "MSFT", "AAPL", "AMZN", "GOOG", "META", "TSLA", "AMD"};
+    const int N = static_cast<int>(watchlist.size());
+    const int R = 3;
+
+    std::cout << "\n      Your watchlist (n = " << N << "):\n        ";
+    for (const std::string& t : watchlist) std::cout << " " << t;   // space first
+    std::cout << "\n      You are making r = " << R << " decisions.\n";
+
+    // All four counts from ONE triple loop. The only thing that changes
+    // between them is the condition - which is the whole 2x2 table.
+    unsigned long long freeChoice = 0, ranked = 0, portfolio = 0, holdings = 0;
+    for (int i = 0; i < N; ++i)
+        for (int j = 0; j < N; ++j)
+            for (int k = 0; k < N; ++k) {
+                ++freeChoice;                                  // anything goes
+                if (i != j && j != k && i != k) ++ranked;       // no repeats
+                if (i < j && j < k)  ++portfolio;               // no repeats, no order
+                if (i <= j && j <= k) ++holdings;               // repeats, no order
+            }
+
+    std::cout << "\n"
+        "      1. WITH replacement, ORDER MATTERS                   n^r\n"
+        "\n"
+        "         'One buy per day, Mon-Tue-Wed. Repeats allowed.'\n"
+        "         Buying NVDA on Monday is a different event from buying\n"
+        "         it on Wednesday, and nothing stops you buying it twice.\n"
+        "\n"
+        "            Mon NVDA / Tue NVDA / Wed AAPL   is legal, and it is\n"
+        "            NOT the same as  Mon AAPL / Tue NVDA / Wed NVDA\n"
+        "\n"
+        "            8 x 8 x 8  =  " << commas(power(N, R)) << " trading weeks\n";
+    verify("market: 3 days of buying", power(N, R), freeChoice);
+
+    std::cout << "\n"
+        "      2. WITHOUT replacement, ORDER MATTERS           n!/(n-r)!\n"
+        "\n"
+        "         'Rank your top 3 convictions: 1st, 2nd, 3rd.'\n"
+        "         A stock cannot hold two ranks, so the list shrinks as\n"
+        "         you fill it - and 1st pick is not the same as 3rd pick.\n"
+        "\n"
+        "            8 x 7 x 6  =  " << commas(nPr(N, R)) << " ranked shortlists\n";
+    verify("market: ranked top 3", nPr(N, R), ranked);
+
+    std::cout << "\n"
+        "      3. WITHOUT replacement, ORDER IGNORED       n!/((n-r)! r!)\n"
+        "\n"
+        "         'Buy 3 different stocks. It is now a portfolio.'\n"
+        "         Look at the account afterwards: nothing on the screen\n"
+        "         records which one you bought first. The order is gone.\n"
+        "\n"
+        "            " << commas(nPr(N, R)) << " / 3!  =  " << commas(nCr(N, R))
+              << " portfolios\n";
+    verify("market: 3-stock basket", nCr(N, R), portfolio);
+
+    std::cout << "\n"
+        "      4. WITH replacement, ORDER IGNORED           a later lesson\n"
+        "\n"
+        "         'Buy 3 shares total, spread however you like.'\n"
+        "         3 shares of NVDA, or 2 NVDA + 1 AMD, or three different\n"
+        "         names. Only the final holdings matter, not the order,\n"
+        "         and doubling up IS allowed. This is the hard cell - it\n"
+        "         has a formula, but it waits for a later lesson.\n"
+        "\n"
+        "            counted by brute force here:  " << commas(holdings)
+              << " holdings\n";
+
+    // The punchline: all four cells are the SAME loop with a different test.
+    std::cout << "\n"
+        "      All four came out of one triple loop. Only the condition\n"
+        "      changed - and that condition IS the 2x2 table:\n"
+        "\n"
+        "         question                  loop test          answer\n"
+        "         ---------------------------------------------------\n"
+        "         3 days of buying          anything goes    " << std::setw(7)
+              << commas(freeChoice) << "\n"
+        "         ranked top 3              i != j != k      " << std::setw(7)
+              << commas(ranked) << "\n"
+        "         3-stock portfolio         i <  j <  k      " << std::setw(7)
+              << commas(portfolio) << "\n"
+        "         3 shares, any spread      i <= j <= k      " << std::setw(7)
+              << commas(holdings) << "\n"
+        "\n"
+        "      Look at the last two: they differ by a single '=' sign.\n"
+        "      That one character is 'can I buy the same stock twice?'\n"
+        "\n"
+        "      Same watchlist, same 3 decisions, answers from "
+              << commas(nCr(N, R)) << " to " << commas(power(N, R)) << ".\n"
+        "      This is why reading the question is most of the work.\n";
 
     // ========================================================================
     part(8, "BACK TO PROBABILITY", "P(A) = ways A / ways total");
